@@ -37,6 +37,8 @@ from tqdm import tqdm
 from colorama import Fore, Back, Style
 from src.pipelines.faster_live_portrait_pipeline import FasterLivePortraitPipeline
 from src.utils.utils import video_has_audio
+import pyvirtualcam
+from pyvirtualcam import PixelFormat
 
 if platform.system().lower() == 'windows':
     FFMPEG = "third_party/ffmpeg-7.0.1-full_build/bin/ffmpeg.exe"
@@ -83,6 +85,7 @@ def run_with_video(args):
     c_lip_lst = []
 
     frame_ind = 0
+    cam = pyvirtualcam.Camera(width=512, height=512, fps=30, fmt=PixelFormat.RGB)
     while vcap.isOpened():
         ret, frame = vcap.read()
         if not ret:
@@ -111,11 +114,16 @@ def run_with_video(args):
             vout_org.write(out_org)
         else:
             if infer_cfg.infer_params.flag_pasteback:
+                out_org_rgb = out_org
                 out_org = cv2.cvtColor(out_org, cv2.COLOR_RGB2BGR)
                 cv2.imshow('Render', out_org)
+                cam.send(out_org_rgb)
+                cam.sleep_until_next_frame()
             else:
                 # image show in realtime mode
                 cv2.imshow('Render', out_crop)
+                cam.send(out_crop)
+                cam.sleep_until_next_frame()
             # 按下'q'键退出循环
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
